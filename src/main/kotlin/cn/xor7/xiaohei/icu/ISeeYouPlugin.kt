@@ -5,6 +5,7 @@ import cn.xor7.xiaohei.icu.commands.registerInstantReplayCommand
 import cn.xor7.xiaohei.icu.commands.registerPhotographerCommand
 import cn.xor7.xiaohei.icu.utils.initConfig
 import cn.xor7.xiaohei.icu.utils.removeAllPhotographers
+import io.github.lumine1909.recorderapi.api.RecorderAPI
 import org.bukkit.plugin.java.JavaPlugin
 
 lateinit var plugin: ISeeYouPlugin
@@ -16,6 +17,7 @@ class ISeeYouPlugin : JavaPlugin() {
     }
 
     override fun onEnable() {
+        RecorderAPI.load(this)
         initConfig()
         registerCommands()
     }

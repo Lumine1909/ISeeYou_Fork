@@ -1,8 +1,8 @@
 package cn.xor7.xiaohei.icu.listeners.anticheat
 
+import me.vagdedes.spartan.api.PlayerViolationEvent
 import org.bukkit.Bukkit
 import org.bukkit.event.EventHandler
-import me.vagdedes.spartan.api.PlayerViolationEvent
 import org.bukkit.event.Listener
 
 class SpartanListener : Listener {

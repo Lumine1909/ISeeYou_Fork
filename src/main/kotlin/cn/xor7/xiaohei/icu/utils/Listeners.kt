@@ -2,14 +2,7 @@ package cn.xor7.xiaohei.icu.utils
 
 import cn.xor7.xiaohei.icu.listeners.InstantReplayListener
 import cn.xor7.xiaohei.icu.listeners.SimpleRecordListener
-import cn.xor7.xiaohei.icu.listeners.anticheat.AntiCheatListener
-import cn.xor7.xiaohei.icu.listeners.anticheat.GrimACListener
-import cn.xor7.xiaohei.icu.listeners.anticheat.LightAntiCheatListener
-import cn.xor7.xiaohei.icu.listeners.anticheat.MatrixListener
-import cn.xor7.xiaohei.icu.listeners.anticheat.NegativityListener
-import cn.xor7.xiaohei.icu.listeners.anticheat.SpartanListener
-import cn.xor7.xiaohei.icu.listeners.anticheat.ThemisListener
-import cn.xor7.xiaohei.icu.listeners.anticheat.VulcanListener
+import cn.xor7.xiaohei.icu.listeners.anticheat.*
 import cn.xor7.xiaohei.icu.plugin
 import org.bukkit.event.Listener
 import kotlin.reflect.KClass

@@ -1,34 +1,25 @@
 package cn.xor7.xiaohei.icu.commands
 
-import cn.xor7.xiaohei.icu.utils.ALLOWED_CHARACTERS
-import cn.xor7.xiaohei.icu.utils.allPhotographers
-import cn.xor7.xiaohei.icu.utils.createPhotographer
-import cn.xor7.xiaohei.icu.utils.getPhotographer
-import cn.xor7.xiaohei.icu.utils.perms
-import cn.xor7.xiaohei.icu.utils.removePhotographer
-import cn.xor7.xiaohei.icu.utils.sendError
-import cn.xor7.xiaohei.icu.utils.sendInfo
-import cn.xor7.xiaohei.icu.utils.sendSuccess
+import cn.xor7.xiaohei.icu.utils.*
 import dev.jorel.commandapi.arguments.ArgumentSuggestions
 import dev.jorel.commandapi.kotlindsl.*
-import org.bukkit.Location
 import org.bukkit.entity.Player
 
 fun registerPhotographerCommand() = commandTree("photographer") {
     literalArgument("create") {
         withPermission(perms.photographer.create)
         stringArgument("name") {
-            locationArgument("location", optional = true) {
+            playerArgument("player", optional = true) {
                 anyExecutor { sender, args ->
                     val isPlayer = sender is Player
                     val name: String by args
-                    val locationArg: Location? by args
-                    val location = locationArg ?: run {
+                    val playerArg: Player? by args
+                    val player = playerArg ?: run {
                         if (!isPlayer) {
-                            sender.sendError("Must specify a location when use this command in console")
+                            sender.sendError("Must specify a player when use this command in console")
                             return@anyExecutor
                         }
-                        return@run sender.location
+                        return@run sender
                     }
 
                     if (name.length !in 4..16) {
@@ -46,11 +37,11 @@ fun registerPhotographerCommand() = commandTree("photographer") {
                         return@anyExecutor
                     }
 
-                    val photographer = createPhotographer(name, location) ?: run {
+                    val photographer = createPhotographer(name, player, createRecordFile(module.path, player)) ?: run {
                         sender.sendError("Failed to create photographer with name '$name'")
                         return@anyExecutor
                     }
-                    sender.sendSuccess("Photographer '${photographer.name}' created at ${photographer.world.name} (${photographer.location.blockX}, ${photographer.location.blockY}, ${photographer.location.blockZ})")
+                    sender.sendSuccess("Photographer '${photographer.name}' created for ${player.name}")
                 }
             }
         }
@@ -70,7 +61,7 @@ fun registerPhotographerCommand() = commandTree("photographer") {
                     return@anyExecutor
                 }
 
-                photographer.removePhotographer()
+                photographer.removePhotographer(false)
                 sender.sendSuccess("Photographer '${photographer.name}' removed")
             }
         }
@@ -80,14 +71,8 @@ fun registerPhotographerCommand() = commandTree("photographer") {
         anyExecutor { sender, _ ->
             allPhotographers.also {
                 sender.sendInfo("Photographers (${it.size}):")
-            }.groupBy(
-                keySelector = { photographer -> photographer.world.name },
-                valueTransform = { photographer -> photographer.name },
-            ).forEach { (worldName, photographers) ->
-                if (photographers.isEmpty()) return@forEach
-
-                val photographerList = photographers.joinToString("\n - ")
-                sender.sendInfo("$worldName (${photographers.size}): \n - $photographerList")
+                val photographerList = it.joinToString("\n - ")
+                sender.sendInfo(photographerList)
             }
         }
     }

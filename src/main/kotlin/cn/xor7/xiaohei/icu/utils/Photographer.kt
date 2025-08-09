@@ -1,54 +1,55 @@
 package cn.xor7.xiaohei.icu.utils
 
 import cn.xor7.xiaohei.icu.plugin
-import org.bukkit.Bukkit
-import org.bukkit.Location
+import io.github.lumine1909.recorderapi.api.RecorderAPI
+import io.github.lumine1909.recorderapi.api.recorder.Recorder
+import io.github.lumine1909.recorderapi.api.recorder.RecorderOption
 import org.bukkit.entity.Player
-import org.leavesmc.leaves.entity.photographer.Photographer
-import org.leavesmc.leaves.replay.BukkitRecorderOption
-import java.util.UUID
+import java.io.File
+import java.util.*
 import java.util.UUID.randomUUID
-import kotlin.collections.set
 
-val photographers = mutableSetOf<UUID>()
-val player2PhotographerMap = mutableMapOf<UUID, Photographer>()
-val allPhotographers: Collection<Photographer>
-    get() = Bukkit.getPhotographerManager().photographers
+val photographers = mutableSetOf<String>()
+val photographer2PlayerMap = mutableMapOf<Recorder, Player>()
+val player2PhotographersMap = mutableMapOf<UUID, MutableSet<Recorder>>()
+val allPhotographers: Collection<Recorder>
+    get() = photographers.map { RecorderAPI.MANAGER.getRecorder(it) }
 
-fun getPhotographer(id: String): Photographer? = Bukkit.getPhotographerManager().getPhotographer(id)
-
-fun getPhotographer(uuid: UUID): Photographer? = Bukkit.getPhotographerManager().getPhotographer(uuid)
+fun getPhotographer(id: String): Recorder? = RecorderAPI.MANAGER.getRecorder(id)
 
 fun createPhotographer(
     id: String,
-    location: Location,
-    recorderOption: BukkitRecorderOption = BukkitRecorderOption()
-): Photographer? = Bukkit.getPhotographerManager().createPhotographer(id, location, recorderOption).also {
-    it?.let { photographers.add(it.uniqueId) }
+    player: Player,
+    file: File,
+    recorderOption: RecorderOption = RecorderOption()
+): Recorder? = RecorderAPI.MANAGER.createVirtualRecorder(id, player, file, recorderOption).also {
+    it?.let {
+        photographers.add(it.name)
+        photographer2PlayerMap[it] = player
+        player2PhotographersMap.computeIfAbsent(player.uniqueId) {mutableSetOf()}.add(it)
+    }
 }
 
-fun Photographer.removePhotographer(save: Boolean = true) {
+fun Recorder.removePhotographer(save: Boolean = true) {
+    if (photographer2PlayerMap[this] == null) {
+        return
+    }
     try {
-        this.stopRecording(true, save)
+        this.stopRecording(save)
+        this.remove()
     } catch (e: Exception) {
         plugin.logger.warning("Err while removing photographer ${this.name}: ${e.message}")
     }
-    photographers.remove(this.uniqueId)
-    player2PhotographerMap.entries.removeIf { it.value.uniqueId == this.uniqueId }
+    photographers.remove(this.name)
+    val player = photographer2PlayerMap[this]
+    photographer2PlayerMap.remove(this)
+    player2PhotographersMap[player?.uniqueId]?.removeIf { it == this }
 }
 
-fun removeAllPhotographers() = photographers.toSet().forEach {
-    val photographer = getPhotographer(it)
-    photographer?.removePhotographer(false)
-}
+fun removeAllPhotographers() = photographer2PlayerMap.forEach {it.key.removePhotographer(false)}
 
-fun Photographer.setFollow(player: Player) {
-    player2PhotographerMap[player.uniqueId] = this
-    this.setFollowPlayer(player)
-}
-
-fun Player.getRecordPhotographer(): Photographer? {
-    return player2PhotographerMap[this.uniqueId]
+fun Player.getRecordPhotographer(): MutableSet<Recorder>? {
+    return player2PhotographersMap[this.uniqueId]
 }
 
 fun Player.getPhotographerName(type: String = ""): String {

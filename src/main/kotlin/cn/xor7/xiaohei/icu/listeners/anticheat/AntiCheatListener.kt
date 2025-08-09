@@ -1,18 +1,15 @@
 package cn.xor7.xiaohei.icu.listeners.anticheat
 
 import cn.xor7.xiaohei.icu.plugin
-import cn.xor7.xiaohei.icu.utils.createPhotographer
-import cn.xor7.xiaohei.icu.utils.createRecordFile
-import cn.xor7.xiaohei.icu.utils.getPhotographerName
-import cn.xor7.xiaohei.icu.utils.module
-import cn.xor7.xiaohei.icu.utils.removePhotographer
+import cn.xor7.xiaohei.icu.utils.*
+import io.github.lumine1909.recorderapi.api.recorder.Recorder
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerQuitEvent
-import org.leavesmc.leaves.entity.photographer.Photographer
+import java.io.File
 import java.util.*
 
 lateinit var antiCheatListener: AntiCheatListener
@@ -42,16 +39,14 @@ class AntiCheatListener : Listener {
     fun onAntiCheatAction(player: Player) {
         val suspiciousPhotographer = suspiciousPhotographers[player.uniqueId]
         if (suspiciousPhotographer == null) {
-            val photographer = createAntiCheatPhotographer(player)
-            val recordFile = createRecordFile(module.recordSuspicious.path, player)
-
-            photographer.setFollowPlayer(player)
-            photographer.setRecordFile(recordFile)
+            val photographer =
+                createAntiCheatPhotographer(player, createRecordFile(module.recordSuspicious.path, player))
             suspiciousPhotographers[player.uniqueId] = SuspiciousPhotographer(
                 photographer = photographer,
                 name = player.name,
                 lastTagged = System.currentTimeMillis(),
             )
+            photographer.startRecording()
         } else {
             suspiciousPhotographers[player.uniqueId] = suspiciousPhotographer.copy(
                 lastTagged = System.currentTimeMillis(),
@@ -64,17 +59,18 @@ class AntiCheatListener : Listener {
         suspiciousPhotographers.remove(e.player.uniqueId)?.photographer?.removePhotographer()
     }
 
-    private fun createAntiCheatPhotographer(player: Player): Photographer =
+    private fun createAntiCheatPhotographer(player: Player, file: File): Recorder =
         createPhotographer(
             player.getPhotographerName("sus_"),
-            player.location,
+            player,
+            file,
         ) ?: throw RuntimeException(
             "Error when create photographer for suspicious player: {name:${player.name},UUID:${player.uniqueId}}",
         )
 }
 
 data class SuspiciousPhotographer(
-    val photographer: Photographer,
+    val photographer: Recorder,
     val name: String,
     val lastTagged: Long,
 )

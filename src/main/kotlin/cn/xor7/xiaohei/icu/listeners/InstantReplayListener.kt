@@ -5,6 +5,7 @@ import cn.xor7.xiaohei.icu.utils.createPhotographer
 import cn.xor7.xiaohei.icu.utils.createRecordFile
 import cn.xor7.xiaohei.icu.utils.module
 import cn.xor7.xiaohei.icu.utils.removePhotographer
+import io.github.lumine1909.recorderapi.api.recorder.Recorder
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
@@ -12,14 +13,14 @@ import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
-import org.leavesmc.leaves.entity.photographer.Photographer
+import java.io.File
 import java.util.*
 import java.util.UUID.randomUUID
 
 lateinit var instantReplayListener: InstantReplayListener
 
 class InstantReplayListener : Listener {
-    val instantReplayPhotographers = mutableMapOf<UUID, MutableSet<Photographer>>()
+    val instantReplayPhotographers = mutableMapOf<UUID, MutableSet<Recorder>>()
 
     init {
         instantReplayListener = this
@@ -64,30 +65,30 @@ class InstantReplayListener : Listener {
     }
 
     private fun triggerOneInstantReplayPhotographer(player: Player) {
-        val photographer = createOneInstantReplayPhotographer(player)
-        val recordFile = createRecordFile(module.instantReplay.path, player)
+        val photographer =
+            createOneInstantReplayPhotographer(player, createRecordFile(module.instantReplay.path, player))
 
-        photographer.setRecordFile(recordFile)
-        photographer.setFollowPlayer(player)
         instantReplayPhotographers
             .computeIfAbsent(player.uniqueId) { LinkedHashSet() }
             .add(photographer)
 
-        photographer.scheduler.runDelayed(
+        photographer.startRecording()
+
+        Bukkit.getGlobalRegionScheduler().runDelayed(
             plugin,
             {
                 photographer.removePhotographer(false)
                 instantReplayPhotographers[player.uniqueId]?.remove(photographer)
             },
-            {},
             module.instantReplay.lengthTicks,
         )
     }
 
-    private fun createOneInstantReplayPhotographer(player: Player): Photographer =
+    private fun createOneInstantReplayPhotographer(player: Player, file: File): Recorder =
         createPhotographer(
             randomUUID().toString().replace("-", "").substring(0, 16),
-            player.location,
+            player,
+            file,
         ) ?: throw RuntimeException(
             "Error when create instant replay photographer for player: {name:${player.name},UUID:${player.uniqueId}}",
         )

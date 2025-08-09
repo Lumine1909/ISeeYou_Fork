@@ -1,34 +1,27 @@
 @file:Suppress("SpellCheckingInspection")
 
-import org.leavesmc.LeavesPluginJson.Load.BEFORE
-import org.leavesmc.leavesPluginJson
-import xyz.jpenilla.runtask.service.DownloadsAPIService
-import xyz.jpenilla.runtask.service.DownloadsAPIService.Companion.registerIfAbsent
+import xyz.jpenilla.resourcefactory.bukkit.bukkitPluginYaml
 
 plugins {
     kotlin("jvm")
-    alias(libs.plugins.leavesweightUserdev)
+    alias(libs.plugins.paperweightUserdev)
     alias(libs.plugins.shadowJar)
     alias(libs.plugins.runPaper)
     alias(libs.plugins.resourceFactory)
 }
 
 group = "cn.xor7.xiaohei"
-version = "2.0.0-SNAPSHOT"
+version = "2.0.0-SNAPSHOT-standalone"
 
-val pluginJson = leavesPluginJson {
+val pluginJson = bukkitPluginYaml {
     main = "cn.xor7.xiaohei.icu.ISeeYouPlugin"
-    authors.add("MC_XiaoHei")
+    authors = listOf("MC_XiaoHei", "Lumine1909")
     description = "record players in .mcpr format"
     website = "https://github.com/MC-XiaoHei/ISeeYou"
     foliaSupported = false // Currently, there is no any known folia forks supports photographer API.
-    apiVersion = libs.versions.leavesApi.extractMCVersion()
-    dependencies.server(
-        name = "CommandAPI",
-        joinClasspath = true,
-        load = BEFORE,
-    )
-    listOf(
+    apiVersion = libs.versions.paperApi.extractMCVersion()
+    depend = listOf("CommandAPI")
+    softDepend = listOf(
         "GrimAC",
         "LightAntiCheat",
         "Matrix",
@@ -36,15 +29,7 @@ val pluginJson = leavesPluginJson {
         "Spartan",
         "Themis",
         "Vulcan",
-    ).forEach {
-        dependencies.server(
-            name = it,
-            joinClasspath = true,
-            load = BEFORE,
-            required = false,
-        )
-    }
-    features.required.add("photographer")
+    )
 }
 
 val runServerPlugins = runPaper.downloadPluginsSpec {
@@ -56,7 +41,6 @@ val runServerPlugins = runPaper.downloadPluginsSpec {
 repositories {
     mavenCentral()
     maven("https://jitpack.io/")
-    maven("https://repo.leavesmc.org/snapshots")
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://repo.codemc.org/repository/maven-public/")
     maven("https://repo.grim.ac/snapshots")
@@ -71,6 +55,8 @@ dependencies {
         implementation(libs.configurateHocon)
         implementation(libs.configurateKotlin)
         implementation(libs.expiringMap)
+        implementation(libs.recorderApi)
+        implementation(libs.recorderApiPlugin)
         compileOnly(libs.commandApiCore)
         compileOnly(libs.commandApiKotlin)
     }
@@ -86,8 +72,8 @@ dependencies {
     }
 
     apply `api and server source`@{
-        compileOnly(libs.leavesApi)
-        paperweight.devBundle(libs.leavesDevBundle)
+        compileOnly(libs.paperApi)
+        paperweight.devBundle(libs.paperDevBundle)
     }
 }
 
@@ -101,9 +87,8 @@ sourceSets {
 
 tasks {
     runServer {
-        downloadsApiService.set(leavesDownloadApiService())
         downloadPlugins.from(runServerPlugins)
-        minecraftVersion(libs.versions.leavesApi.extractMCVersion())
+        minecraftVersion(libs.versions.paperApi.extractMCVersion())
         systemProperty("file.encoding", Charsets.UTF_8.name())
     }
 
@@ -118,6 +103,7 @@ tasks {
 
     shadowJar {
         archiveFileName = "${project.name}-${version}.jar"
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
 
     build {
@@ -144,10 +130,4 @@ fun Provider<String>.extractMCVersion(): String {
     val regex = Regex("""^(1\.\d+(?:\.\d+)?)""")
     return regex.find(versionString)?.groupValues?.get(1)
         ?: throw IllegalArgumentException("Cannot extract mcVersion from $versionString")
-}
-
-fun leavesDownloadApiService(): Provider<out DownloadsAPIService> = registerIfAbsent(project) {
-    downloadsEndpoint = "https://api.leavesmc.org/v2/"
-    downloadProjectName = "leaves"
-    buildServiceName = "leaves-download-service"
 }
